@@ -30,7 +30,7 @@ Article = namedtuple('Article', ['title', 'url', 'summary', 'keywords', 'date', 
 class ArticleManager:
     #   manipulate Article objects
     def __init__(self):
-        self.articles: List(Article) = []
+        self.articles: List[Article] = []
         self.logfile_path = 'content/past_articles.json'
     def truncate_title(self, title: str) -> str:
         #   shortens title to 3 words and adds ellipsis
