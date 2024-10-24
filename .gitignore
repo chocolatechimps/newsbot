@@ -1,0 +1,13 @@
+#   gitignore file : named files are not tracked in repo
+
+#   environment variables : api keys etc here are private
+.env
+.env-backup
+.env*
+
+#   private notes. mostly todo items
+notes-priv.md
+
+#   content folder : generated content is not tracked in repo
+content/
+__pycache__/
