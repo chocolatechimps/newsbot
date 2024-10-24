@@ -1,6 +1,5 @@
 from newsbot_backend import *
 import argparse
-from newsbot_first_time_setup import SetupManager
 
 def parse_shell():
     #   use newsbot like a real command line tool

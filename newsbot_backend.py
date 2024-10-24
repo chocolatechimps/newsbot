@@ -323,10 +323,9 @@ class SetupManager:
                 env_file.write(f"REDDIT_API_USER_AGENT={reddit_api_user_agent}\n")
                 #   give the subreddit options their own setup later
                 env_file.write(f"DEFAULT_SUBREDDIT={default_subreddit_to_scrape}\n")
-                env_file.write(f"DEFAULT_SUBREDDIT_CATEGORY={default_subreddit_category}\n")
                 #   summarize settings
-                env_file.write(f"DEFAULT_SUMMARIZATION_CONTEXT={default_summarization_context}")
-                env_file.write(f"DEFAULT_SUMMARIZATION_INSTRUCTIONS={default_summarization_instructions}")
+                env_file.write(f"DEFAULT_SUMMARIZATION_CONTEXT={default_summarization_context}\n")
+                env_file.write(f"DEFAULT_SUMMARIZATION_INSTRUCTIONS={default_summarization_instructions}\n")
                 if default_subreddit_category not in ['top', 'hot', 'new', 'rising']:
                     #   make sure category is valid
                     #   prob should make a class to sanitize input later
@@ -350,9 +349,10 @@ class SetupManager:
     def logfile_setup(self):
         if not self.logfile_exists():
             print(f'{bcolors.ITALICS}No logfile detected...{bcolors.ENDC}')
-            with open('content/past_articles.json', 'w') as logfile:
-                json.dump([], logfile)
-                print(f'{bcolors.YELLOW}Logfile Created{bcolors.ENDC}')
+            os.makedirs('content', exist_ok=True)  # Create the content directory if it doesn't exist
+            with open('content/past_articles.json', 'w') as logfile:  # Create an empty logfile
+                logfile.write('[]')  # Initialize with an empty JSON array
+            print(f'{bcolors.YELLOW}Logfile Created{bcolors.ENDC}')
     def test_openai_api_key(self) -> bool:#   check OpenAI API key Validity
         if not self.dotenv_exists():#   make sure the .env file exists
             raise ValueError(f'{bcolors.RED}{bcolors.BOLD}No .env file detected. Please run setup first.{bcolors.ENDC}')

@@ -20,7 +20,7 @@
 
 Download the repo `git clone <repo>`
 
-Make an enviornment `conda env create -n YOURNAMEHERE` and activate it `conda activate YOURNAMEHERE`
+Make an enviornment `conda create -n YOURNAMEHERE` and activate it `conda activate YOURNAMEHERE`
 
 Install all the dependencies `pip install -r requirements.txt`
 
