@@ -1,10 +1,11 @@
 from newsbot_backend import *
 import argparse
+from newsbot_first_time_setup import SetupManager
 
 def parse_shell():
     #   use newsbot like a real command line tool
     parser = argparse.ArgumentParser(description='NewsBot CLI for fetching and managing articles.')
-    parser.add_argument('command', choices=['harvest', 'fetch', 'summarize', 'recall','help', 'api', 'setup'], 
+    parser.add_argument('command', choices=['harvest', 'fetch', 'summarize', 'recall','help', 'api'], 
                         help='Command to execute')
     parser.add_argument('--subreddit', '-s', type=str, 
                         help='Subreddit to scrape articles from')
@@ -35,13 +36,7 @@ def exec_command(command, subreddit, category, limit):
         os.system('python ./newsbot_cli.py -h')
     elif command == "api":
         start_api()
-    elif command == "setup":
-        #   sets up .env even if it exists 
-        confirm = input("This will delete all API keys and default settings. Are you sure you want to continue? (y/N): ").strip().lower()
-        if confirm == 'y':
-            SetupManager().first_time_setup()
-        else:
-            print("Operation Cancelled.")
+
         
 
 if __name__ == "__main__":

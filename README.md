@@ -18,15 +18,13 @@
 
 **Setup**
 
-Download the repo
+Download the repo `git clone <repo>`
 
-`git clone <repo>`
+Make an enviornment `conda env create -n YOURNAMEHERE` and activate it `conda activate YOURNAMEHERE`
 
-Run the first time setup from the root directory
+Install all the dependencies `pip install -r requirements.txt`
 
-`cd <installation>/newsbotai-master`
-
-`python newsbot_cli.py setup`
+run `python newsbot_cli.py`
 
 Follow prompts to setup a conda environment and install the dependencies
 

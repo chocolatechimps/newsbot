@@ -5,7 +5,6 @@
 #   date: 2024-10-20
 #
 
-
 #
 #   import required libraries
 #
@@ -254,6 +253,7 @@ def view_article_summary(article: Article):
     print(f'{bcolors.BLUE}Summary: \n{bcolors.ENDC}{bcolors.YELLOW}{article.summary}{bcolors.ENDC}')
 
 # might not be the best way to do this
+# the first time setup script is a new file but im not sure if chaning this will break anything yet
 class SetupManager:
     def __init__(self):
         pass
@@ -375,7 +375,6 @@ class SetupManager:
         except ValueError as e:
             print(f'\033[91m{str(e)}\033[0m')
             return False
-
 
 class bcolors:#   color coding of terminal output
     PINK= '\033[95m'
