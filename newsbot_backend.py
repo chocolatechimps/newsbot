@@ -35,11 +35,12 @@ class ArticleManager:
     def truncate_title(self, title: str) -> str:
         #   shortens title to 3 words and adds ellipsis
         #   used for logging
+        title = str(title)#   make sure its a string. title could be None
         return " ".join(title.split()[:5]) + "..."
     def add(self, article: Article):#   store article in memory
         self.articles.append(article)#   add article to a list 
     def novel(self, article: Article) -> bool:
-        #   novelty check
+        #   make sure article is not a duplicate
         print(f'{bcolors.BLUE}Checking novelty{bcolors.ENDC}')
         with open(self.logfile_path, 'r') as logfile:
             saved_articles = json.load(logfile)
@@ -81,6 +82,123 @@ class ArticleManager:
         with open(self.logfile_path, 'r') as logfile:
             saved_articles = json.load(logfile)
             return len(saved_articles) + 1
+    def get_or_generate_image(self, article: Article = None, url: str = None, summary: str = None):
+        # DALLE API call to generate an image for the article
+        print(f'{bcolors.ITALICS}Generating Image...{bcolors.ENDC}')
+        # parse the input
+        if article:
+            # this one is easy. if it got an article object, use it
+            print(f'{bcolors.BLUE}Using provided article object{bcolors.ENDC}')
+        elif article is None:
+            #   make an article object if none is provided 
+            print(f'{bcolors.RED}No Article Object Provided{bcolors.ENDC}')
+            if summary and url:
+                #
+                #    if it gets both, just use the url
+                #
+                with open(self.logfile_path, 'r') as logfile:
+                    saved_articles = json.load(logfile)
+                    existing_links = {saved_articles["ARTICLE_LINK"] for saved_articles in saved_articles}
+                    #   if the URL is saved already use that data
+                    if url in existing_links:
+                        print(f'{bcolors.BLUE}Found Saved Link:{bcolors.ENDC} {url}')
+                        for saved_article in saved_articles:
+                            if saved_article.get("ARTICLE_LINK") == url:
+                                article = Article(
+                                    title=saved_article["ARTICLE_TITLE"],
+                                    url=saved_article["ARTICLE_LINK"],
+                                    summary=saved_article.get("ARTICLE_SUMMARY"),
+                                    keywords=saved_article.get("ARTICLE_KEYWORDS", None),
+                                    date=saved_article.get("DATE", None),
+                                    file_id=saved_article.get("FILE_ID", None)
+                                )
+                                print(f'{bcolors.BLUE}Found Article:{bcolors.ENDC} {ArticleManager().truncate_title(article.title)}')
+                    else:
+                        #   if the URL is not saved already, fetch the article from the url
+                        article = fetch_article_from_url(url=url)
+            elif summary and not url:
+                #   if only a summary, make an article object with just the summary and file_id
+                #   basically just exists for testing
+                print(f'{bcolors.RED}No url provided{bcolors.ENDC}')
+                article = Article(title=None, url=None, summary=summary, keywords=None, date=None, file_id=self.set_file_id())
+            elif not summary and url:
+                #   if only a url, fetch the article from the url
+                print(f'{bcolors.RED}No summary provided{bcolors.ENDC}')
+                # make a temp article for novelty check
+                article = Article(title=None, url=url, summary=None, keywords=None, date=None, file_id=None)
+                if self.novel(article):
+                    article = fetch_article_from_url(url=url)
+                    # if its novel, run a fetch
+                else:
+                    # if its not novel, use the saved data
+                    with open(self.logfile_path, 'r') as logfile:
+                        saved_articles = json.load(logfile)
+                        existing_links = {saved_articles["ARTICLE_LINK"] for saved_articles in saved_articles}
+                        #   if the URL is saved already use that data
+                        if url in existing_links:
+                            print(f'{bcolors.BLUE}Found Saved Link:{bcolors.ENDC} {url}')
+                            for saved_article in saved_articles:
+                                if saved_article.get("ARTICLE_LINK") == url:
+                                    article = Article(
+                                        title=saved_article["ARTICLE_TITLE"],
+                                        url=saved_article["ARTICLE_LINK"],
+                                        summary=saved_article.get("ARTICLE_SUMMARY"),
+                                        keywords=saved_article.get("ARTICLE_KEYWORDS", None),
+                                        date=saved_article.get("DATE", None),
+                                        file_id=saved_article.get("FILE_ID", None)
+                                    )
+                                    print(f'{bcolors.BLUE}Found Article:{bcolors.ENDC} {ArticleManager().truncate_title(article.title)}') 
+            else:
+                #   if nothing is provided, just exit
+                print(f'{bcolors.RED}{bcolors.BOLD}SOMETHING WENT WRONG{bcolors.ENDC}')
+                exit()
+        #   make sure the images directory exists
+        SetupManager().image_directory_setup()
+        #
+        #   TODO : check if theres already an image made for it
+        #
+        #   make the DALLE API call
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "dall-e-3",
+            "prompt": article.summary,
+            "n": 1,
+            "size": "1024x1024"
+        }
+        response = requests.post("https://api.openai.com/v1/images/generations", headers=headers, json=data)
+        attempts = 1
+        while attempts < 6:
+            print(f'{bcolors.BLUE}{attempts} Images Requested{bcolors.ENDC}')
+            attempts += 1
+            try:
+                if response.status_code == 200:
+                    print(f'{bcolors.YELLOW}Image Generated{bcolors.ENDC}')
+                    image_url = response.json()['data'][0]['url']
+                    image_data = requests.get(image_url).content
+                    filename = str(article.file_id) + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
+                    filepath = os.path.join('content/images', filename)
+                    with open(filepath, 'wb') as f:
+                        f.write(image_data)
+                    print(f"{bcolors.YELLOW}Saved As: {bcolors.ENDC}{filepath}")
+                    return filepath
+                elif response.status_code == 429:
+                    print(f'{bcolors.RED}{bcolors.UNDERLINE}Rate Limit Reached{bcolors.ENDC}')
+                    print(f'{bcolors.RED}Error: {response.status_code} - {response.text}{bcolors.ENDC}')
+                    time.sleep(10)
+                elif response.status_code == 400:
+                    print(f'{bcolors.RED}{bcolors.UNDERLINE}Content Policy Violation{bcolors.ENDC}')
+                    print(f'{bcolors.RED}Error: {response.status_code} - {response.text}{bcolors.ENDC}')
+                    time.sleep(1000)# wait until trying again, becuase the filter sometimes doesnt get it right
+                    continue
+                else:
+                    print(f'{bcolors.RED}{bcolors.UNDERLINE}Problem with the DALLE API call{bcolors.ENDC}')
+                    print(f'{bcolors.RED}Error: {response.status_code} - {response.text}{bcolors.ENDC}')
+            except Exception as e:
+                print(f'{bcolors.RED}Error: {e}{bcolors.ENDC}')
+                attempts = 5
 
     def save(self, article: Article, force: bool = False):
         #   save article to json | force = True to save even if not novel
@@ -145,6 +263,8 @@ class ArticleManager:
 #
 #       interact with the article manager
 #
+#       these should probably be in a class
+#
 
 def fetch_article_from_reddit(subreddit: str = None, category: str = None, limit: int = 1) -> Generator[Article, None, None]:
     #   general purpose function for fetching articles from a subreddit
@@ -174,6 +294,7 @@ def fetch_article_from_reddit(subreddit: str = None, category: str = None, limit
 
 def fetch_article_from_url(url: str) -> Article:
     #   fetch article from url
+    #   populates everything except for keywords
     article_data = Article3k(url)
     article_data.download()
     article_data.parse()
@@ -375,6 +496,14 @@ class SetupManager:
             with open('content/past_articles.json', 'w') as logfile:  # Create an empty logfile
                 logfile.write('[]')  # Initialize with an empty JSON array
             print(f'{bcolors.YELLOW}Logfile Created{bcolors.ENDC}')
+    def image_directory_exists(self) -> bool:
+        return os.path.exists('content/images')
+    def image_directory_setup(self):
+        if not self.image_directory_exists():
+            os.makedirs('content/images', exist_ok=True)# not sure what exist_ok does
+            print(f'{bcolors.YELLOW}Images directory created{bcolors.ENDC}')
+        else:
+            print(f'{bcolors.YELLOW}Images directory already exists{bcolors.ENDC}')
     def test_openai_api_key(self) -> bool:#   check OpenAI API key Validity
         if not self.dotenv_exists():#   make sure the .env file exists
             raise ValueError(f'{bcolors.RED}{bcolors.BOLD}No .env file detected. Please run setup first.{bcolors.ENDC}')
@@ -417,8 +546,6 @@ def start_api():
     from newsbot_api import app
     print(f'{bcolors.YELLOW}Starting API...{bcolors.ENDC}')
     app.run(debug=True)
-    #print(f'{bcolors.YELLOW}Starting Electron UI...{bcolors.ENDC}')
-    #os.system('npm start')
     pass
 
 
