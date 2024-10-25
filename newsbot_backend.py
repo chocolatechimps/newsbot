@@ -50,11 +50,11 @@ class ArticleManager:
             else:
                 print(f'{bcolors.RED}Article Is Novel: {bcolors.ENDC}{bcolors.ITALICS}{self.truncate_title(article.title)}{bcolors.ENDC}')
                 return True
-    def summarize(self, article: Article) -> str:#   summarize article
+    def summarize(self, url) -> str:#   summarize article
         #   use openai to summarize article
         #   use newspaper3k to read the article
         #   download and parse article with newspaper3k
-        article_contents = Article3k(article.url)
+        article_contents = Article3k(url)
         article_contents.download()
         article_contents.parse()
 
@@ -76,17 +76,26 @@ class ArticleManager:
             return response.json()['choices'][0]['message']['content'].strip()
         else:
             print(f'{bcolors.RED}Error: {response.status_code} - {response.text}{bcolors.ENDC}')
+    def set_file_id(self) -> int:
+        #   set the file_id of the article
+        with open(self.logfile_path, 'r') as logfile:
+            saved_articles = json.load(logfile)
+            return len(saved_articles) + 1
 
-    def save(self, article: Article):
-        #   save article to json
-        print(f'{bcolors.HIGHLIGHT}Saving Article: {self.truncate_title(article.title)}{bcolors.ENDC}')
+    def save(self, article: Article, force: bool = False):
+        #   save article to json | force = True to save even if not novel
+        if not force and not self.novel(article):
+            # novelty check so that only novel articles are saved
+            print(f'{bcolors.RED}{bcolors.BOLD}Article Not Saved{bcolors.ENDC}')
+            return False
+        print(f'{bcolors.HIGHLIGHT}Saving Article:{bcolors.ENDC}{bcolors.ITALICS} {self.truncate_title(article.title)}{bcolors.ENDC}')
         
         #   summary assignment
         if hasattr(article, 'summary') and article.summary is not None:
             #   if article already has a summary, skip the assignment
             print(f'Article has a Summary: \n{bcolors.BLUE}{article.summary}{bcolors.ENDC}')
         else:
-            print(f'{bcolors.BLUE}{bcolors.ITALICS}Summary set to None{bcolors.ENDC}')
+            print(f'{bcolors.ITALICS}Summary set to None{bcolors.ENDC}')
             pass
         
         #   keywords assignment
@@ -94,7 +103,7 @@ class ArticleManager:
             #   if article already has keywords, skip the assignment
             print(f'Article Has Keywords: {bcolors.BLUE}{article.keywords}{bcolors.ENDC}')
         else:
-            print(f'{bcolors.BLUE}{bcolors.ITALICS}Keywords Set to None{bcolors.ENDC}')
+            print(f'{bcolors.ITALICS}Setting Keywords:{bcolors.ENDC}{bcolors.BLUE} None{bcolors.ENDC}')
 
         #   date assignment
         if hasattr(article, 'date') and article.date is not None:
@@ -131,7 +140,7 @@ class ArticleManager:
             saved_articles.append(article_data)
         with open(self.logfile_path, 'w') as logfile:
             json.dump(saved_articles, logfile, indent=4)
-            print(f'{bcolors.YELLOW}Saved \nFILE_ID: {article.file_id}{bcolors.ENDC}')
+            print(f'{bcolors.YELLOW}Saved \n{bcolors.ENDC}FILE_ID: {bcolors.BLUE}{article.file_id}{bcolors.ENDC}')
 
 #
 #       interact with the article manager
@@ -163,6 +172,19 @@ def fetch_article_from_reddit(subreddit: str = None, category: str = None, limit
     for submission in getattr(reddit.subreddit(subreddit), category)(limit=limit):
         yield Article(submission.title, submission.url, None, None, None, None)
 
+def fetch_article_from_url(url: str) -> Article:
+    #   fetch article from url
+    article_data = Article3k(url)
+    article_data.download()
+    article_data.parse()
+    print(f'{bcolors.ITALICS}{article_data.title}{bcolors.ENDC}')
+    print(f'{bcolors.BLUE}{url}{bcolors.ENDC}')
+    print(f'{ArticleManager().summarize(url)}')
+    article = Article(article_data.title, url, ArticleManager().summarize(url), None, int(time.time()), ArticleManager().set_file_id())
+    ArticleManager().save(article)
+    return article
+
+
 def harvest(subreddit: str = None, category: str = None, limit: int = 1):
     #    gets articles and does the following:
     #   -   checks if article is novel
@@ -177,7 +199,7 @@ def harvest(subreddit: str = None, category: str = None, limit: int = 1):
                 search_count += 1
                 pass
             else:
-                gpt_summary = ArticleManager().summarize(article)
+                gpt_summary = ArticleManager().summarize(article.url)
                 article = article._replace(summary=gpt_summary)
                 ArticleManager().save(article)
                 return False
