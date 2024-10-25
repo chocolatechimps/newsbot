@@ -53,10 +53,14 @@ Starts flask server on 127.0.0.1:5000
 
 Not all the commands work yet. Check newsbot_api.py for the full list of commands.
 
+## Usage ( Image Generation )
+
+Currently not accessible through API or CLI.
+
+Integration coming soon.
+
 ## Future Enhancements
 • Twitter integration
-
-• AI generate image based on article
 
 ## Why?
 I made this for fun.
