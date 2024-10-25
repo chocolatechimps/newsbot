@@ -2,17 +2,13 @@
 ## About
 **NEWSBOTAI** scrapes Reddit for links and summarizes them into tweets with ChatGPT. 
 ## Dependencies 
-• PRAW (Python Reddit API Wrapper) pulls posts from reddit. 
+• **PRAW** (Python Reddit API Wrapper) for reddit scraping
 
-• Newspaper3k reads and summarize article links
+• **Newspaper3k** for article scraping
 
-• Flask for API
+• **Flask** for API functionality
 
-• Electron for WebUI
-
-• NodeJS for WebUI
-
-• Conda for environment management (or any other environment manager, not technically required but recommended and the auto setup will try to use conda)
+• ChatGPT API for summarization
 
 ## Installation
 
