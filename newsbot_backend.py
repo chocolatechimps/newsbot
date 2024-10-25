@@ -82,7 +82,7 @@ class ArticleManager:
         with open(self.logfile_path, 'r') as logfile:
             saved_articles = json.load(logfile)
             return len(saved_articles) + 1
-    def get_or_generate_image(self, article: Article = None, url: str = None, summary: str = None):
+    def generate_image(self, article: Article = None, url: str = None, summary: str = None):
         # DALLE API call to generate an image for the article
         print(f'{bcolors.ITALICS}Generating Image...{bcolors.ENDC}')
         # parse the input
