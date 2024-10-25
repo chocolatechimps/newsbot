@@ -10,4 +10,5 @@ notes-priv.md
 
 #   content folder : generated content is not tracked in repo
 content/
+#   python cache
 __pycache__/
